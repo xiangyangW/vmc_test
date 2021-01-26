@@ -19,11 +19,13 @@ public:
 
 private slots:
     void on_pbtn_open_clicked();
-    void receiveInfo();
 
     void on_pbtn_send_clicked();
 
     void on_pbtn_clear_clicked();
+
+    void onTimeOut();
+    void receiveInfo();
 
 private:
     QStringList    getPortNameList();
@@ -32,5 +34,7 @@ private:
     Ui::MainWindow  *ui;
     QSerialPort     *vmc_serialport_;
     QStringList     all_port_namelist_;
+    QTimer          *timer_;
+    bool            bool_readdata_;
 };
 #endif // MAINWINDOW_H
