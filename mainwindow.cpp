@@ -68,13 +68,18 @@ void MainWindow::receiveInfo()
     QByteArray read_data = vmc_serialport_->readAll();
     qDebug() << read_data;
     ui->textBrowser->append(QString(read_data));
+
+    receiveDataCheck(read_data);
+
 }
 
 void MainWindow::on_pbtn_send_clicked()
 {
-    bool_readdata_ = 0;
-    QString data_string =  ui->lineEdit->text() + "\n";
-    QByteArray send_data =  data_string.toLatin1();
+    bool_readdata_ = 0;  // this is for timer to check if i get data
+    cmd_string_ =  ui->lineEdit->text() + "\n";
+    QByteArray send_data =  cmd_string_.toLatin1();
+
+    // TO DO: check the command in the line edit. see if it's correct.
 
     // before sending data, clear the buffer
     if (vmc_serialport_->isOpen())
@@ -86,8 +91,6 @@ void MainWindow::on_pbtn_send_clicked()
 
     vmc_serialport_->write(send_data);
     qDebug() << send_data;
-
-    // TO DO: check the command in the line edit. see if it's correct.
 
     // set a timer for 80s when data write to serialport
     timer_->start();
@@ -121,5 +124,65 @@ void MainWindow::onTimeOut()
         vmc_serialport_->clear();
         real_time = 0;
         timer_->stop();
+    }
+}
+
+void MainWindow::receiveDataCheck(QByteArray& read_data)
+{
+    // 依據read_data和傳送指令比對，檢查運作是否正確
+    // 條件式設置會因為非同步通訊有問題，如果response還沒處理好，cmd_string_可能已經被洗掉
+    if ( QString(read_data) == "r1.0.1023")
+    {
+        if (cmd_string_ != "VMIF\n")
+            qDebug() << "response don't match to command";
+    }
+    if ( QString(read_data) == "CPONOK")
+    {
+        if (cmd_string_ != "CPON\n")
+            qDebug() << "response don't match to command";
+    }
+    if ( QString(read_data) == "CPOFOK")
+    {
+        if (cmd_string_ != "CPOF\n")
+            qDebug() << "response don't match to command";
+    }
+    if ( QString(read_data) == "CHRT\r\n"
+            || QString(read_data) == "CHRT\r\n"
+            || QString(read_data) == "CHRTDO"
+            || QString(read_data) == "CHRTEE"
+            || QString(read_data) == "CHRTNO")
+    {
+        if (cmd_string_ != "CHRT\n")
+        {
+            qDebug() << "response don't match to command";
+        }
+    }
+    QString response_str = QString(read_data);
+    if (response_str.left(2) == "CH" )
+    {
+        if (response_str.endsWith("OK")
+                || response_str.endsWith("OP")
+                || response_str.endsWith("DO")
+                || response_str.endsWith("EE01")
+                || response_str.endsWith("EE02")
+                || response_str.endsWith("EE03")
+                || response_str.endsWith("EE04"))
+        {
+            QString str = response_str.mid(2, 2);
+            if (str.toInt() > 10 && str.toInt() < 100)
+            {
+                if (cmd_string_.left(2) != "CH" || cmd_string_.right(2) != "\n")
+                    qDebug() << "response don't match to command";
+                QString str2 = cmd_string_.mid(2, 2);
+                if (str2.toInt() > 99 || str2.toInt() < 11)
+                    qDebug() << "response don't match to command";
+            }
+        }
+    }
+    // ******REAL TPAL IS NOT DONE
+    if ( QString(read_data) == "TP01000.0TP02000.0TP03000.0TP04000.0TP05000.0TP06000.0TP07000.0TP08000.0CP0FN0CD0")
+    {
+        if (cmd_string_ != "TPAL\n")
+            qDebug() << "response don't match to command";
     }
 }

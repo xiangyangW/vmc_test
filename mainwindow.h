@@ -29,6 +29,7 @@ private slots:
 
 private:
     QStringList    getPortNameList();
+    void           receiveDataCheck(QByteArray&);
 
 private:
     Ui::MainWindow  *ui;
@@ -36,5 +37,6 @@ private:
     QStringList     all_port_namelist_;
     QTimer          *timer_;
     bool            bool_readdata_;
+    QString         cmd_string_;  // command given in line edit
 };
 #endif // MAINWINDOW_H
