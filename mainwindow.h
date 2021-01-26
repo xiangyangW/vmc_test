@@ -21,8 +21,11 @@ private slots:
     void on_pbtn_open_clicked();
     void receiveInfo();
 
+    void on_pbtn_send_clicked();
+
+    void on_pbtn_clear_clicked();
+
 private:
-    //void OpenPort();
     QStringList    getPortNameList();
 
 private:

@@ -13,6 +13,7 @@ MainWindow::MainWindow(QWidget* parent)
     all_port_namelist_ = getPortNameList();  // build a list that contains all the ports connecting
     ui->comboBox->addItems(all_port_namelist_);
 
+    connect(vmc_serialport_,SIGNAL(readyRead()),this,SLOT(receiveInfo()));
 }
 
 MainWindow::~MainWindow()
@@ -30,7 +31,7 @@ QStringList MainWindow::getPortNameList()
 
 void MainWindow::on_pbtn_open_clicked()
 {
-// choose a port and open it
+    // this function is used to choose a com port and open it
 
     if(vmc_serialport_->isOpen())
     {
@@ -52,7 +53,39 @@ void MainWindow::on_pbtn_open_clicked()
         return;
     }
     qDebug()<<"ok"; // ************delete
+
+
 }
 
 void MainWindow::receiveInfo()
-{}
+{
+    QByteArray read_data= vmc_serialport_->readAll();
+    qDebug()<<read_data;
+    ui->textBrowser->append(QString(read_data));
+}
+
+void MainWindow::on_pbtn_send_clicked()
+{
+    QString data_string =  ui->lineEdit->text() + "\n";
+    QByteArray send_data =  data_string.toLatin1();
+
+    // before sending data, clear the buffer
+    if(vmc_serialport_->isOpen())
+    {
+        vmc_serialport_->clear();
+        if(vmc_serialport_->clear())
+            qDebug()<<"buffer cleared";
+    }
+
+    vmc_serialport_->write(send_data);
+    qDebug()<<send_data;
+}
+
+void MainWindow::on_pbtn_clear_clicked()
+{
+    if(vmc_serialport_->isOpen())
+    {
+    vmc_serialport_->clear();
+    }
+    ui->textBrowser->setText("");
+}
