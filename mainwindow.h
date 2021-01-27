@@ -14,7 +14,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(QWidget* parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -30,13 +30,14 @@ private slots:
 private:
     QStringList    getPortNameList();
     void           receiveDataCheck(QByteArray&);
+    bool           cmdBool(QString);
 
 private:
-    Ui::MainWindow  *ui;
-    QSerialPort     *vmc_serialport_;
+    Ui::MainWindow*  ui;
+    QSerialPort*     vmc_serialport_;
     QStringList     all_port_namelist_;
-    QTimer          *timer_;
-    bool            bool_readdata_;
+    QTimer*          timer_;
+    bool            bool_readdata_;  // this is for timer to check if i get data
     QString         cmd_string_;  // command given in line edit
 };
 #endif // MAINWINDOW_H
