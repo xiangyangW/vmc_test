@@ -59,31 +59,30 @@ void MainWindow::on_pbtn_open_clicked()
         QMessageBox::warning(this, "warning", "Port didn't open" );
         return;
     }
-    qDebug() << "ok"; // ************delete
-
-
 }
 
 void MainWindow::receiveInfo()
 {
-    cmd_string_ = "1";  //*****************move to the place when RX is correcct and process is done
-    bool_readdata_ = 1;
-    QByteArray read_data = vmc_serialport_->readAll();
-    ui->textBrowser->append(QString(read_data));
+    read_data_ = vmc_serialport_->readAll();
 
-    //*******receiveDataCheck(read_data);
+    // check if RX is correct
+    // ps. RX is simply check
+    if (receiveDataCheck(QString(read_data_)))
+    {
+        ui->textBrowser->append(QString(read_data_));
+    }
+    else
+    {
+        qDebug() << "system error : wrong RX";
+        cmd_string_ = "1";
+    }
 
 }
 
 void MainWindow::on_pbtn_send_clicked()
 {
-    //*************
-    if (cmd_string_.toInt())
+    if (cmd_string_ == "1")
     {
-        qDebug() << "ready to read cmds";
-
-
-        bool_readdata_ = 0;  // this is for timer to check if i get data
         cmd_string_ =  ui->lineEdit->text() + "\n";
         QByteArray send_data =  cmd_string_.toLatin1();
 
@@ -102,7 +101,10 @@ void MainWindow::on_pbtn_send_clicked()
             timer_->start();
         }
         else
+        {
+            cmd_string_ = "1";
             ui->lineEdit->text() = "cmd is wrong";
+        }
 
     }
     else
@@ -122,7 +124,7 @@ void MainWindow::onTimeOut()
 {
     static int real_time = 0;
 
-    if (bool_readdata_)
+    if (cmd_string_ == "1")
     {
         real_time = 0;
         timer_->stop();
@@ -182,62 +184,219 @@ bool MainWindow::cmdBool(QString cmd_str)
     }
 }
 
-//void MainWindow::receiveDataCheck(QByteArray& read_data)
-//{
-//    // 依據read_data和傳送指令比對，檢查運作是否正確
-//    // 條件式設置會因為非同步通訊有問題，如果response還沒處理好，cmd_string_可能已經被洗掉
-//    if ( QString(read_data) == "r1.0.1023")
-//    {
-//        if (cmd_string_ != "VMIF\n")
-//            qDebug() << "response don't match to command";
-//    }
-//    if ( QString(read_data) == "CPONOK")
-//    {
-//        if (cmd_string_ != "CPON\n")
-//            qDebug() << "response don't match to command";
-//    }
-//    if ( QString(read_data) == "CPOFOK")
-//    {
-//        if (cmd_string_ != "CPOF\n")
-//            qDebug() << "response don't match to command";
-//    }
-//    if ( QString(read_data) == "CHRT\r\n"
-//            || QString(read_data) == "CHRT\r\n"
-//            || QString(read_data) == "CHRTDO"
-//            || QString(read_data) == "CHRTEE"
-//            || QString(read_data) == "CHRTNO")
-//    {
-//        if (cmd_string_ != "CHRT\n")
-//        {
-//            qDebug() << "response don't match to command";
-//        }
-//    }
-//    QString response_str = QString(read_data);
-//    if (response_str.left(2) == "CH" )
-//    {
-//        if (response_str.endsWith("OK")
-//                || response_str.endsWith("OP")
-//                || response_str.endsWith("DO")
-//                || response_str.endsWith("EE01")
-//                || response_str.endsWith("EE02")
-//                || response_str.endsWith("EE03")
-//                || response_str.endsWith("EE04"))
-//        {
-//            QString str = response_str.mid(2, 2);
-//            if (str.toInt() > 10 && str.toInt() < 100)
-//            {
-//                if (cmd_string_.left(2) != "CH" || cmd_string_.right(2) != "\n")
-//                    qDebug() << "response don't match to command";
-//                QString str2 = cmd_string_.mid(2, 2);
-//                if (str2.toInt() > 99 || str2.toInt() < 11)
-//                    qDebug() << "response don't match to command";
-//            }
-//        }
-//    }
-//    // ******REAL TPAL IS NOT DONE
-//    if ( QString(read_data) == "TP01000.0TP02000.0TP03000.0TP04000.0TP05000.0TP06000.0TP07000.0TP08000.0CP0FN0CD0")
-//    {
-//        if (cmd_string_ != "TPAL\n")
-//            qDebug() << "response don't match to command";
-//    }
-//}
+bool MainWindow::receiveDataCheck(QString read_str)
+{
+    if (cmd_string_ == "CPON\n")
+        return true;
+    {
+        if (read_str.size() == 6)
+        {
+            if (read_str == "CPONOK")
+            {
+                cmd_string_ = "1";
+                return true;
+            }
+            else
+                return false;
+        }
+        else
+        {
+            // if its size is wrong wait for a while
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            if (QString(read_data_) == "CPONOK")
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+
+        }
+    }
+    if (cmd_string_ == "CPOF\n")
+    {
+        if (read_str.size() == 6)
+        {
+            if (read_str == "CPOFOK")
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+        }
+        else
+        {
+            // if its size is wrong wait for a while
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            if (QString(read_data_) == "CPOFOK")
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+
+        }
+    }
+    if (cmd_string_ == "TPAL\n")
+    {
+        if (read_str.size() == 81)
+        {
+            if (read_str.left(3) == "TP0")
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+        }
+        else
+        {
+            // if its size is wrong wait for a while
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            if (read_str.size() == 81)
+            {
+                if (read_str.left(3) == "TP0")
+                {
+                    return true;
+                    cmd_string_ = "1";
+                }
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
+    }
+    if (cmd_string_ == "CHRT\n")
+    {
+        if (read_str.size() == 6)
+        {
+            if (read_str == "CHRTDO"
+                    || read_str == "CHRTNO"
+                    || read_str == "CHRTEE")
+            {
+                cmd_string_ = "1";
+                return true;
+            }
+            else if (read_str == "CHRT\r\n")
+                return true;
+            else
+                return false;
+        }
+        else
+        {
+            // if its size is wrong wait for a while
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            if (read_str == "CHRTDO"
+                    || read_str == "CHRTNO"
+                    || read_str == "CHRTEE")
+            {
+                cmd_string_ = "1";
+                return true;
+            }
+            else if (read_str == "CHRT\r\n")
+                return true;
+            else
+                return false;
+
+        }
+    }
+
+    QString check_num = cmd_string_.mid(2, 2);
+    bool is_num;
+    check_num.toInt(&is_num, 10);
+    if (cmd_string_.left(2) == "CH" && is_num)
+    {
+        if (read_str.size() == 6 || read_str.size() == 8)
+        {
+            if (read_str.left(4) == cmd_string_.left(4))
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+        }
+        else
+        {
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            if (read_str.size() == 6 || read_str.size() == 8)
+            {
+                if (read_str.left(4) == cmd_string_.left(4))
+                {
+                    return true;
+                    cmd_string_ = "1";
+                }
+                else
+                    return false;
+            }
+            else
+                return false;
+        }
+    }
+    if (cmd_string_ == "VMIF\n")
+    {
+        if (read_str.size() == 9)
+        {
+            // check 1023 part
+            QString check_four_digit = read_str.right(4);
+            bool is_four;
+            check_four_digit.toInt(&is_four, 10);
+            // check 1.0 part
+            QString check_float = read_str.mid(1, 3);
+            bool is_float;
+            check_float.toFloat(&is_float);
+            if (read_str.at(0) == "r" && is_four && is_float)
+            {
+                return true;
+                cmd_string_ = "1";
+            }
+            else
+                return false;
+
+        }
+        else
+        {
+            // if its size is wrong wait for a while
+            while (vmc_serialport_->waitForReadyRead())
+            {
+                read_data_ += vmc_serialport_->readAll();
+            }
+            // check 1023 part
+            QString check_four_digit = read_str.right(4);
+            bool is_four;
+            check_four_digit.toInt(&is_four, 10);
+            // check 1.0 part
+            QString check_float = read_str.mid(1, 3);
+            bool is_float;
+            check_float.toFloat(&is_float);
+            if (read_str.at(0) == "r" && is_four && is_float)
+            {
+                cmd_string_ = "1";
+                return true;
+            }
+            else
+                return false;
+        }
+    }
+    else
+        return false;
+}
+

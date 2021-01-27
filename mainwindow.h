@@ -29,15 +29,15 @@ private slots:
 
 private:
     QStringList    getPortNameList();
-    void           receiveDataCheck(QByteArray&);
+    bool           receiveDataCheck(QString);
     bool           cmdBool(QString);
 
 private:
-    Ui::MainWindow*  ui;
-    QSerialPort*     vmc_serialport_;
+    Ui::MainWindow  *ui;
+    QSerialPort     *vmc_serialport_;
     QStringList     all_port_namelist_;
-    QTimer*          timer_;
-    bool            bool_readdata_;  // this is for timer to check if i get data
+    QTimer          *timer_;
     QString         cmd_string_;  // command given in line edit
+    QByteArray      read_data_;
 };
 #endif // MAINWINDOW_H
